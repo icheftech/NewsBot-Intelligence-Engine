@@ -1,0 +1,9 @@
+nltk>=3.8
+spacy>=3.8
+scikit-learn>=1.4
+pandas>=2.0
+numpy>=1.26
+matplotlib>=3.8
+seaborn>=0.13
+gradio>=4.0
+kagglehub>=0.2
