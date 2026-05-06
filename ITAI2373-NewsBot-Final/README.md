@@ -1,7 +1,7 @@
 # NewsBot Intelligence Engine 2.0
 
 **ITAI 2373 — Natural Language Processing | Final Project**  
-Leroy Brown | Founder & CTO, Southern Shade Technologies | Houston Community College
+Leroy Brown | Houston Community College
 
 [![Open in Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/icheftech/NewsBot-Intelligence-Engine/blob/main/ITAI2373-NewsBot-Final/NewsBot_Intelligence_Engine_2.0.ipynb)
 
@@ -134,4 +134,4 @@ See [`docs/technical_documentation.md`](docs/technical_documentation.md) for ful
 
 ## License
 
-MIT License — Southern Shade Technologies, 2026
+MIT License, 2026
