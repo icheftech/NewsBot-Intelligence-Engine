@@ -1,0 +1,14 @@
+# NewsBot Intelligence Engine 2.0 — API Keys Template
+# Copy this file to config/api_keys.py and fill in your values.
+# NEVER commit api_keys.py to version control.
+
+# Kaggle (for BBC dataset download via kagglehub)
+# Set these as environment variables or in a .env file:
+#   KAGGLE_USERNAME=your_kaggle_username
+#   KAGGLE_KEY=your_kaggle_api_key
+
+# HuggingFace (optional, for gated models)
+#   HUGGINGFACE_TOKEN=your_hf_token
+
+# Google Translate (via deep-translator — no key required for free tier)
+# No API key needed for deep-translator's GoogleTranslator backend.
