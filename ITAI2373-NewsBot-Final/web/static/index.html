@@ -1,0 +1,645 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>NewsBot 2.0 — AI News Intelligence Engine</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            navy:  { DEFAULT: '#1B2A4A', light: '#243560', dark: '#0F172A' },
+            brand: { DEFAULT: '#2563EB', light: '#3B82F6', dark: '#1D4ED8' },
+          }
+        }
+      }
+    }
+  </script>
+  <style>
+    * { box-sizing: border-box; }
+    body { font-family: 'Segoe UI', system-ui, sans-serif; }
+
+    /* Scrollbar */
+    ::-webkit-scrollbar { width: 6px; }
+    ::-webkit-scrollbar-track { background: #1B2A4A; }
+    ::-webkit-scrollbar-thumb { background: #2563EB; border-radius: 3px; }
+
+    /* Chat bubbles */
+    .bubble-user { background: #2563EB; color: white; border-radius: 18px 18px 4px 18px; }
+    .bubble-bot  { background: #243560; color: #E2E8F0; border-radius: 18px 18px 18px 4px; border: 1px solid #2d3f6b; }
+
+    /* Tab active */
+    .tab-btn.active { background: #2563EB; color: white; }
+    .tab-btn        { transition: all 0.2s; }
+
+    /* Confidence bar */
+    .conf-bar { height: 8px; border-radius: 4px; background: #2563EB; transition: width 0.6s ease; }
+
+    /* Loading pulse */
+    @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.4} }
+    .typing-dot { animation: pulse 1.2s infinite; }
+    .typing-dot:nth-child(2) { animation-delay: 0.2s; }
+    .typing-dot:nth-child(3) { animation-delay: 0.4s; }
+
+    /* Stat card hover */
+    .stat-card { transition: transform 0.2s, box-shadow 0.2s; }
+    .stat-card:hover { transform: translateY(-2px); box-shadow: 0 8px 24px rgba(37,99,235,0.2); }
+
+    /* Markdown-ish in bot responses */
+    .bot-text strong, .bot-text b { color: #93C5FD; font-weight: 700; }
+    .bot-text code { background: #1e3058; padding: 1px 5px; border-radius: 3px; font-family: monospace; font-size: 0.85em; color: #7DD3FC; }
+  </style>
+</head>
+<body class="bg-navy-dark min-h-screen text-slate-100">
+
+<!-- ═══════════════════ HEADER ═══════════════════ -->
+<header class="bg-navy border-b border-brand/30 sticky top-0 z-50 shadow-lg">
+  <div class="max-w-7xl mx-auto px-4 py-3 flex items-center justify-between">
+    <div class="flex items-center gap-3">
+      <div class="w-9 h-9 bg-brand rounded-lg flex items-center justify-center font-black text-white text-lg">N</div>
+      <div>
+        <h1 class="font-bold text-white text-lg leading-none">NewsBot 2.0</h1>
+        <p class="text-slate-400 text-xs">AI News Intelligence Engine</p>
+      </div>
+    </div>
+    <div class="flex items-center gap-3">
+      <div id="status-dot" class="flex items-center gap-2 text-xs text-slate-400">
+        <span class="w-2 h-2 rounded-full bg-yellow-400 animate-pulse"></span>
+        <span id="status-text">Connecting...</span>
+      </div>
+      <a href="https://github.com/icheftech/NewsBot-Intelligence-Engine" target="_blank"
+         class="text-xs bg-navy-light border border-brand/30 hover:border-brand px-3 py-1.5 rounded-lg text-slate-300 hover:text-white transition-all">
+        GitHub ↗
+      </a>
+    </div>
+  </div>
+</header>
+
+<!-- ═══════════════════ MAIN LAYOUT ═══════════════════ -->
+<div class="max-w-7xl mx-auto px-4 py-6 flex gap-6">
+
+  <!-- LEFT: Chat Panel -->
+  <div class="flex-1 min-w-0 flex flex-col" style="height:calc(100vh - 100px)">
+
+    <!-- Tab bar -->
+    <div class="flex gap-1 mb-4 bg-navy rounded-xl p-1 border border-brand/20">
+      <button class="tab-btn active flex-1 py-2 px-3 rounded-lg text-sm font-medium" data-tab="chat">💬 Chat</button>
+      <button class="tab-btn flex-1 py-2 px-3 rounded-lg text-sm font-medium text-slate-400 hover:text-white" data-tab="classify">🏷️ Classify</button>
+      <button class="tab-btn flex-1 py-2 px-3 rounded-lg text-sm font-medium text-slate-400 hover:text-white" data-tab="summarize">📝 Summarize</button>
+      <button class="tab-btn flex-1 py-2 px-3 rounded-lg text-sm font-medium text-slate-400 hover:text-white" data-tab="search">🔍 Search</button>
+      <button class="tab-btn flex-1 py-2 px-3 rounded-lg text-sm font-medium text-slate-400 hover:text-white" data-tab="translate">🌐 Translate</button>
+    </div>
+
+    <!-- ── CHAT TAB ── -->
+    <div id="tab-chat" class="flex flex-col flex-1 min-h-0">
+      <div id="chat-messages" class="flex-1 overflow-y-auto space-y-4 pr-1 mb-4">
+        <!-- Welcome message -->
+        <div class="flex gap-3 items-start">
+          <div class="w-8 h-8 bg-brand rounded-full flex-shrink-0 flex items-center justify-center text-sm font-bold">N</div>
+          <div class="bubble-bot px-4 py-3 max-w-lg bot-text">
+            <p class="font-semibold text-brand-light mb-1">NewsBot 2.0 ready!</p>
+            <p class="text-sm text-slate-300">Try these commands:</p>
+            <ul class="text-sm text-slate-400 mt-1 space-y-0.5">
+              <li><code>classify:</code> [article text]</li>
+              <li><code>summarize:</code> [article text]</li>
+              <li><code>search:</code> [topic or question]</li>
+              <li><code>translate:</code> [foreign text]</li>
+              <li><code>stats</code> · <code>topics</code> · <code>help</code></li>
+            </ul>
+          </div>
+        </div>
+      </div>
+
+      <!-- Quick examples -->
+      <div class="flex gap-2 flex-wrap mb-3">
+        <button class="example-btn text-xs bg-navy border border-brand/30 hover:border-brand px-3 py-1.5 rounded-full text-slate-300 hover:text-white transition-all" data-msg="help">help</button>
+        <button class="example-btn text-xs bg-navy border border-brand/30 hover:border-brand px-3 py-1.5 rounded-full text-slate-300 hover:text-white transition-all" data-msg="stats">stats</button>
+        <button class="example-btn text-xs bg-navy border border-brand/30 hover:border-brand px-3 py-1.5 rounded-full text-slate-300 hover:text-white transition-all" data-msg="topics">topics</button>
+        <button class="example-btn text-xs bg-navy border border-brand/30 hover:border-brand px-3 py-1.5 rounded-full text-slate-300 hover:text-white transition-all" data-msg="search: artificial intelligence technology">search: AI technology</button>
+      </div>
+
+      <!-- Chat input -->
+      <div class="flex gap-2">
+        <input id="chat-input" type="text" placeholder="Type a command or question..."
+               class="flex-1 bg-navy border border-brand/30 focus:border-brand rounded-xl px-4 py-3 text-sm text-white placeholder-slate-500 outline-none transition-all" />
+        <button id="chat-send" class="bg-brand hover:bg-brand-dark px-5 py-3 rounded-xl text-sm font-semibold transition-all disabled:opacity-40 disabled:cursor-not-allowed">Send</button>
+      </div>
+    </div>
+
+    <!-- ── CLASSIFY TAB ── -->
+    <div id="tab-classify" class="hidden flex-col flex-1 min-h-0 gap-4">
+      <textarea id="classify-input" placeholder="Paste a news article here (minimum 10 words)..."
+                class="flex-1 bg-navy border border-brand/30 focus:border-brand rounded-xl px-4 py-3 text-sm text-white placeholder-slate-500 outline-none resize-none transition-all"></textarea>
+      <button id="classify-btn" class="bg-brand hover:bg-brand-dark px-6 py-3 rounded-xl text-sm font-semibold transition-all">Classify Article</button>
+      <div id="classify-result" class="hidden"></div>
+    </div>
+
+    <!-- ── SUMMARIZE TAB ── -->
+    <div id="tab-summarize" class="hidden flex-col flex-1 min-h-0 gap-4">
+      <textarea id="summarize-input" placeholder="Paste a news article here (minimum 40 words)..."
+                class="flex-1 bg-navy border border-brand/30 focus:border-brand rounded-xl px-4 py-3 text-sm text-white placeholder-slate-500 outline-none resize-none transition-all"></textarea>
+      <button id="summarize-btn" class="bg-brand hover:bg-brand-dark px-6 py-3 rounded-xl text-sm font-semibold transition-all">Summarize</button>
+      <div id="summarize-result" class="hidden"></div>
+    </div>
+
+    <!-- ── SEARCH TAB ── -->
+    <div id="tab-search" class="hidden flex-col flex-1 min-h-0 gap-4">
+      <input id="search-input" type="text" placeholder="Search for news topics, events, or questions..."
+             class="bg-navy border border-brand/30 focus:border-brand rounded-xl px-4 py-3 text-sm text-white placeholder-slate-500 outline-none transition-all" />
+      <button id="search-btn" class="bg-brand hover:bg-brand-dark px-6 py-3 rounded-xl text-sm font-semibold transition-all">Semantic Search</button>
+      <div id="search-results" class="hidden flex-1 overflow-y-auto space-y-3"></div>
+    </div>
+
+    <!-- ── TRANSLATE TAB ── -->
+    <div id="tab-translate" class="hidden flex-col flex-1 min-h-0 gap-4">
+      <textarea id="translate-input" placeholder="Paste foreign-language text here (Spanish, French, German, Portuguese, Chinese...)..."
+                class="flex-1 bg-navy border border-brand/30 focus:border-brand rounded-xl px-4 py-3 text-sm text-white placeholder-slate-500 outline-none resize-none transition-all"></textarea>
+      <button id="translate-btn" class="bg-brand hover:bg-brand-dark px-6 py-3 rounded-xl text-sm font-semibold transition-all">Detect &amp; Translate</button>
+      <div id="translate-result" class="hidden"></div>
+    </div>
+
+  </div><!-- end left panel -->
+
+  <!-- RIGHT: Stats Sidebar -->
+  <div class="w-72 flex-shrink-0 space-y-4">
+
+    <!-- System Stats -->
+    <div class="bg-navy rounded-xl border border-brand/20 p-4">
+      <h2 class="font-bold text-sm text-slate-300 uppercase tracking-wider mb-3">System Stats</h2>
+      <div id="stats-grid" class="grid grid-cols-2 gap-2">
+        <div class="stat-card bg-navy-dark rounded-lg p-3 text-center border border-brand/10">
+          <div class="text-xl font-black text-brand" id="stat-articles">—</div>
+          <div class="text-xs text-slate-400 mt-0.5">Articles</div>
+        </div>
+        <div class="stat-card bg-navy-dark rounded-lg p-3 text-center border border-brand/10">
+          <div class="text-xl font-black text-green-400" id="stat-accuracy">—</div>
+          <div class="text-xs text-slate-400 mt-0.5">Accuracy</div>
+        </div>
+        <div class="stat-card bg-navy-dark rounded-lg p-3 text-center border border-brand/10">
+          <div class="text-xl font-black text-purple-400">7</div>
+          <div class="text-xs text-slate-400 mt-0.5">Intents</div>
+        </div>
+        <div class="stat-card bg-navy-dark rounded-lg p-3 text-center border border-brand/10">
+          <div class="text-xl font-black text-amber-400">5</div>
+          <div class="text-xs text-slate-400 mt-0.5">Languages</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Category Breakdown -->
+    <div class="bg-navy rounded-xl border border-brand/20 p-4">
+      <h2 class="font-bold text-sm text-slate-300 uppercase tracking-wider mb-3">Category Breakdown</h2>
+      <div id="category-bars" class="space-y-3">
+        <div class="text-xs text-slate-500 text-center py-2">Loading...</div>
+      </div>
+    </div>
+
+    <!-- Sentiment by Category -->
+    <div class="bg-navy rounded-xl border border-brand/20 p-4">
+      <h2 class="font-bold text-sm text-slate-300 uppercase tracking-wider mb-3">Avg Sentiment</h2>
+      <div id="sentiment-bars" class="space-y-2">
+        <div class="text-xs text-slate-500 text-center py-2">Loading...</div>
+      </div>
+    </div>
+
+    <!-- Top Topics -->
+    <div class="bg-navy rounded-xl border border-brand/20 p-4">
+      <h2 class="font-bold text-sm text-slate-300 uppercase tracking-wider mb-3">Top Topics</h2>
+      <div id="topics-list" class="space-y-2">
+        <div class="text-xs text-slate-500 text-center py-2">Loading...</div>
+      </div>
+    </div>
+
+    <!-- About -->
+    <div class="bg-navy rounded-xl border border-brand/20 p-4 text-xs text-slate-400 space-y-1">
+      <p class="font-semibold text-slate-300">NewsBot Intelligence Engine 2.0</p>
+      <p>ITAI 2373 Final Project</p>
+      <p>Leroy Brown · Houston Community College</p>
+      <p class="pt-1">8 NLP pipelines · BBC News Archive</p>
+    </div>
+
+  </div><!-- end sidebar -->
+</div><!-- end main layout -->
+
+<!-- ═══════════════════ JAVASCRIPT ═══════════════════ -->
+<script>
+const API = '';  // Same origin — empty string means relative URLs
+
+// ── Utility ───────────────────────────────────────────────────────────────
+const $ = (s, el = document) => el.querySelector(s);
+const $$ = (s, el = document) => [...el.querySelectorAll(s)];
+
+async function apiPost(endpoint, body) {
+  const res = await fetch(`${API}/api/${endpoint}`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(body),
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({ detail: 'Unknown error' }));
+    throw new Error(err.detail || res.statusText);
+  }
+  return res.json();
+}
+
+async function apiGet(endpoint) {
+  const res = await fetch(`${API}/api/${endpoint}`);
+  if (!res.ok) throw new Error(res.statusText);
+  return res.json();
+}
+
+function escapeHtml(str) {
+  return String(str)
+    .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
+    .replace(/"/g,'&quot;');
+}
+
+// Render markdown-ish: **bold**, `code`, newlines
+function renderMarkdown(text) {
+  return escapeHtml(text)
+    .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
+    .replace(/`(.+?)`/g, '<code>$1</code>')
+    .replace(/\n/g, '<br/>');
+}
+
+// ── Status check ──────────────────────────────────────────────────────────
+async function checkStatus() {
+  try {
+    const data = await apiGet('health');
+    const dot = $('#status-dot span:first-child');
+    const txt = $('#status-text');
+    if (data.ready) {
+      dot.className = 'w-2 h-2 rounded-full bg-green-400';
+      txt.textContent = 'Online';
+      loadSidebar();
+    } else {
+      dot.className = 'w-2 h-2 rounded-full bg-yellow-400 animate-pulse';
+      txt.textContent = 'Loading pipeline...';
+      setTimeout(checkStatus, 3000);
+    }
+  } catch {
+    const dot = $('#status-dot span:first-child');
+    $('#status-text').textContent = 'Offline';
+    dot.className = 'w-2 h-2 rounded-full bg-red-400';
+    setTimeout(checkStatus, 5000);
+  }
+}
+
+// ── Sidebar data ──────────────────────────────────────────────────────────
+const CAT_COLORS = {
+  business: '#3B82F6', entertainment: '#EC4899',
+  politics: '#8B5CF6', sport: '#10B981', tech: '#F59E0B',
+};
+
+async function loadSidebar() {
+  try {
+    const stats = await apiGet('stats');
+
+    // Headline stats
+    $('#stat-articles').textContent = stats.total_articles.toLocaleString();
+    $('#stat-accuracy').textContent = (stats.accuracy * 100).toFixed(1) + '%';
+
+    // Category breakdown bars
+    const total = stats.total_articles;
+    const catBars = $('#category-bars');
+    catBars.innerHTML = Object.entries(stats.category_counts)
+      .sort((a, b) => b[1] - a[1])
+      .map(([cat, cnt]) => {
+        const pct = ((cnt / total) * 100).toFixed(1);
+        const color = CAT_COLORS[cat] || '#6366F1';
+        return `
+          <div>
+            <div class="flex justify-between text-xs mb-1">
+              <span class="capitalize text-slate-300 font-medium">${cat}</span>
+              <span class="text-slate-400">${cnt}</span>
+            </div>
+            <div class="h-2 bg-navy-dark rounded-full overflow-hidden">
+              <div class="conf-bar h-full rounded-full" style="width:${pct}%;background:${color}"></div>
+            </div>
+          </div>`;
+      }).join('');
+
+    // Sentiment bars
+    const sentBars = $('#sentiment-bars');
+    sentBars.innerHTML = Object.entries(stats.avg_sentiment)
+      .map(([cat, val]) => {
+        const pct = ((val + 1) / 2 * 100).toFixed(0);
+        const color = val >= 0.05 ? '#10B981' : val <= -0.05 ? '#EF4444' : '#94A3B8';
+        const sign = val >= 0 ? '+' : '';
+        return `
+          <div class="flex items-center gap-2">
+            <span class="capitalize text-xs text-slate-400 w-20 flex-shrink-0">${cat}</span>
+            <div class="flex-1 h-1.5 bg-navy-dark rounded-full overflow-hidden">
+              <div style="width:${pct}%;background:${color};height:100%;border-radius:9999px"></div>
+            </div>
+            <span class="text-xs font-mono w-12 text-right" style="color:${color}">${sign}${val.toFixed(3)}</span>
+          </div>`;
+      }).join('');
+
+    // Topics
+    const topics = await apiGet('topics');
+    const topicsList = $('#topics-list');
+    topicsList.innerHTML = Object.entries(topics).map(([cat, words]) => `
+      <div>
+        <span class="text-xs font-semibold capitalize" style="color:${CAT_COLORS[cat]||'#6366F1'}">${cat}</span>
+        <p class="text-xs text-slate-400 leading-relaxed">${words.slice(0, 5).join(' · ')}</p>
+      </div>`).join('');
+
+  } catch (e) {
+    console.error('Sidebar load error:', e);
+  }
+}
+
+// ── Tab switching ─────────────────────────────────────────────────────────
+$$('.tab-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    const tab = btn.dataset.tab;
+    $$('.tab-btn').forEach(b => {
+      b.classList.remove('active');
+      b.classList.add('text-slate-400');
+    });
+    btn.classList.add('active');
+    btn.classList.remove('text-slate-400');
+    $$('[id^="tab-"]').forEach(p => p.classList.add('hidden'));
+    $(`#tab-${tab}`).classList.remove('hidden');
+    $(`#tab-${tab}`).classList.add('flex');
+  });
+});
+
+// ── Chat ──────────────────────────────────────────────────────────────────
+const chatHistory = [];
+
+function appendMessage(role, text, intent = null) {
+  const container = $('#chat-messages');
+  const isUser = role === 'user';
+
+  const wrap = document.createElement('div');
+  wrap.className = `flex gap-3 items-start ${isUser ? 'flex-row-reverse' : ''}`;
+
+  const avatar = document.createElement('div');
+  avatar.className = `w-8 h-8 rounded-full flex-shrink-0 flex items-center justify-center text-sm font-bold ${
+    isUser ? 'bg-slate-600 text-white' : 'bg-brand text-white'
+  }`;
+  avatar.textContent = isUser ? 'U' : 'N';
+
+  const bubble = document.createElement('div');
+  bubble.className = `${isUser ? 'bubble-user' : 'bubble-bot bot-text'} px-4 py-3 max-w-lg text-sm`;
+
+  if (intent && !isUser) {
+    const badge = document.createElement('span');
+    badge.className = 'text-xs bg-brand/20 text-brand-light px-2 py-0.5 rounded-full mr-2 font-mono';
+    badge.textContent = intent;
+    bubble.appendChild(badge);
+    bubble.appendChild(document.createElement('br'));
+    bubble.style.paddingTop = '10px';
+  }
+
+  const p = document.createElement('div');
+  p.innerHTML = isUser ? escapeHtml(text) : renderMarkdown(text);
+  bubble.appendChild(p);
+
+  wrap.appendChild(avatar);
+  wrap.appendChild(bubble);
+  container.appendChild(wrap);
+  container.scrollTop = container.scrollHeight;
+  return wrap;
+}
+
+function appendTyping() {
+  const container = $('#chat-messages');
+  const wrap = document.createElement('div');
+  wrap.className = 'flex gap-3 items-start';
+  wrap.id = 'typing-indicator';
+  wrap.innerHTML = `
+    <div class="w-8 h-8 bg-brand rounded-full flex-shrink-0 flex items-center justify-center text-sm font-bold">N</div>
+    <div class="bubble-bot px-4 py-3 flex gap-1 items-center">
+      <span class="typing-dot w-2 h-2 bg-slate-400 rounded-full"></span>
+      <span class="typing-dot w-2 h-2 bg-slate-400 rounded-full"></span>
+      <span class="typing-dot w-2 h-2 bg-slate-400 rounded-full"></span>
+    </div>`;
+  container.appendChild(wrap);
+  container.scrollTop = container.scrollHeight;
+}
+
+function removeTyping() {
+  const t = $('#typing-indicator');
+  if (t) t.remove();
+}
+
+async function sendChat(message) {
+  if (!message.trim()) return;
+  const input = $('#chat-input');
+  const btn = $('#chat-send');
+  input.value = '';
+  input.disabled = true;
+  btn.disabled = true;
+
+  appendMessage('user', message);
+  appendTyping();
+
+  try {
+    const data = await apiPost('chat', { message, history: chatHistory });
+    removeTyping();
+    appendMessage('bot', data.response, data.intent);
+    chatHistory.push([message, data.response]);
+    if (chatHistory.length > 20) chatHistory.shift();
+  } catch (e) {
+    removeTyping();
+    appendMessage('bot', `Error: ${e.message}`);
+  } finally {
+    input.disabled = false;
+    btn.disabled = false;
+    input.focus();
+  }
+}
+
+$('#chat-send').addEventListener('click', () => sendChat($('#chat-input').value));
+$('#chat-input').addEventListener('keydown', e => { if (e.key === 'Enter') sendChat(e.target.value); });
+$$('.example-btn').forEach(btn => {
+  btn.addEventListener('click', () => sendChat(btn.dataset.msg));
+});
+
+// ── Classify Tab ──────────────────────────────────────────────────────────
+$('#classify-btn').addEventListener('click', async () => {
+  const text = $('#classify-input').value.trim();
+  const result = $('#classify-result');
+  if (!text) return;
+  $('#classify-btn').textContent = 'Classifying...';
+  $('#classify-btn').disabled = true;
+  result.className = 'hidden';
+
+  try {
+    const data = await apiPost('classify', { text });
+    const sentLabel = data.sentiment.sent_compound >= 0.05 ? '😊 Positive'
+                    : data.sentiment.sent_compound <= -0.05 ? '😞 Negative' : '😐 Neutral';
+    const sentColor = data.sentiment.sent_compound >= 0.05 ? 'text-green-400'
+                    : data.sentiment.sent_compound <= -0.05 ? 'text-red-400' : 'text-slate-400';
+
+    result.innerHTML = `
+      <div class="bg-navy border border-brand/20 rounded-xl p-4 space-y-4">
+        <div class="flex items-center gap-3">
+          <span class="text-2xl font-black uppercase text-brand">${escapeHtml(data.category)}</span>
+          <span class="text-sm bg-brand/20 text-brand-light px-3 py-1 rounded-full font-mono">${(data.confidence*100).toFixed(1)}% confidence</span>
+        </div>
+        <div>
+          <p class="text-xs text-slate-400 uppercase tracking-wider mb-2">All Categories</p>
+          <div class="space-y-2">
+            ${data.all_scores.slice(0,5).map(s => `
+              <div>
+                <div class="flex justify-between text-xs mb-1">
+                  <span class="capitalize text-slate-300">${escapeHtml(s.category)}</span>
+                  <span class="text-slate-400 font-mono">${(s.probability*100).toFixed(1)}%</span>
+                </div>
+                <div class="h-2 bg-navy-dark rounded-full overflow-hidden">
+                  <div class="conf-bar" style="width:${(s.probability*100).toFixed(1)}%"></div>
+                </div>
+              </div>`).join('')}
+          </div>
+        </div>
+        <div class="flex items-center gap-2 pt-1 border-t border-brand/10">
+          <span class="text-xs text-slate-400">Sentiment:</span>
+          <span class="text-sm font-semibold ${sentColor}">${sentLabel}</span>
+          <span class="text-xs text-slate-500 font-mono">(${data.sentiment.sent_compound.toFixed(3)})</span>
+        </div>
+      </div>`;
+    result.classList.remove('hidden');
+  } catch (e) {
+    result.innerHTML = `<div class="text-red-400 text-sm p-3 bg-red-900/20 rounded-xl">Error: ${escapeHtml(e.message)}</div>`;
+    result.classList.remove('hidden');
+  } finally {
+    $('#classify-btn').textContent = 'Classify Article';
+    $('#classify-btn').disabled = false;
+  }
+});
+
+// ── Summarize Tab ─────────────────────────────────────────────────────────
+$('#summarize-btn').addEventListener('click', async () => {
+  const text = $('#summarize-input').value.trim();
+  const result = $('#summarize-result');
+  if (!text) return;
+  $('#summarize-btn').textContent = 'Summarizing...';
+  $('#summarize-btn').disabled = true;
+  result.className = 'hidden';
+
+  try {
+    const data = await apiPost('summarize', { text });
+    result.innerHTML = `
+      <div class="bg-navy border border-brand/20 rounded-xl p-4 space-y-3">
+        <div class="flex gap-3">
+          <div class="text-center bg-navy-dark rounded-lg p-3 min-w-[80px] border border-brand/10">
+            <div class="text-xl font-black text-brand">${data.original_words}</div>
+            <div class="text-xs text-slate-400">Original</div>
+          </div>
+          <div class="flex items-center text-slate-500">→</div>
+          <div class="text-center bg-navy-dark rounded-lg p-3 min-w-[80px] border border-green-500/20">
+            <div class="text-xl font-black text-green-400">${data.summary_words}</div>
+            <div class="text-xs text-slate-400">Summary</div>
+          </div>
+          <div class="flex items-center text-slate-500">·</div>
+          <div class="text-center bg-navy-dark rounded-lg p-3 min-w-[80px] border border-purple-500/20">
+            <div class="text-xl font-black text-purple-400">${data.compression_pct}%</div>
+            <div class="text-xs text-slate-400">Compression</div>
+          </div>
+        </div>
+        <div class="pt-2 border-t border-brand/10">
+          <p class="text-xs text-slate-400 uppercase tracking-wider mb-2">Summary</p>
+          <p class="text-sm text-slate-200 leading-relaxed">${escapeHtml(data.summary)}</p>
+        </div>
+      </div>`;
+    result.classList.remove('hidden');
+  } catch (e) {
+    result.innerHTML = `<div class="text-red-400 text-sm p-3 bg-red-900/20 rounded-xl">Error: ${escapeHtml(e.message)}</div>`;
+    result.classList.remove('hidden');
+  } finally {
+    $('#summarize-btn').textContent = 'Summarize';
+    $('#summarize-btn').disabled = false;
+  }
+});
+
+// ── Search Tab ────────────────────────────────────────────────────────────
+$('#search-btn').addEventListener('click', async () => {
+  const query = $('#search-input').value.trim();
+  const results = $('#search-results');
+  if (!query) return;
+  $('#search-btn').textContent = 'Searching...';
+  $('#search-btn').disabled = true;
+  results.innerHTML = '';
+  results.classList.add('hidden');
+
+  try {
+    const data = await apiPost('search', { query, top_k: 5 });
+    results.innerHTML = data.results.map((r, i) => `
+      <div class="bg-navy border border-brand/20 rounded-xl p-4 hover:border-brand/50 transition-all">
+        <div class="flex items-center gap-2 mb-2">
+          <span class="text-xs font-bold uppercase px-2 py-0.5 rounded-full" style="background:${CAT_COLORS[r.category]||'#6366F1'}20;color:${CAT_COLORS[r.category]||'#6366F1'}">${escapeHtml(r.category)}</span>
+          <span class="text-xs text-slate-500 font-mono ml-auto">${(r.score*100).toFixed(1)}% match</span>
+        </div>
+        <p class="text-sm text-slate-300 leading-relaxed">${escapeHtml((r.snippet||'').slice(0,220))}...</p>
+        <div class="mt-2 h-1 bg-navy-dark rounded-full overflow-hidden">
+          <div style="width:${(r.score*100).toFixed(0)}%;height:100%;background:${CAT_COLORS[r.category]||'#6366F1'};border-radius:9999px"></div>
+        </div>
+      </div>`).join('');
+    results.classList.remove('hidden');
+    results.classList.add('flex');
+  } catch (e) {
+    results.innerHTML = `<div class="text-red-400 text-sm p-3 bg-red-900/20 rounded-xl">Error: ${escapeHtml(e.message)}</div>`;
+    results.classList.remove('hidden');
+  } finally {
+    $('#search-btn').textContent = 'Semantic Search';
+    $('#search-btn').disabled = false;
+  }
+});
+
+$('#search-input').addEventListener('keydown', e => {
+  if (e.key === 'Enter') $('#search-btn').click();
+});
+
+// ── Translate Tab ─────────────────────────────────────────────────────────
+$('#translate-btn').addEventListener('click', async () => {
+  const text = $('#translate-input').value.trim();
+  const result = $('#translate-result');
+  if (!text) return;
+  $('#translate-btn').textContent = 'Detecting & Translating...';
+  $('#translate-btn').disabled = true;
+  result.className = 'hidden';
+
+  try {
+    const data = await apiPost('translate', { text });
+    const catColor = CAT_COLORS[data.predicted_category] || '#6366F1';
+    result.innerHTML = `
+      <div class="bg-navy border border-brand/20 rounded-xl p-4 space-y-3">
+        <div class="flex gap-2 flex-wrap">
+          <span class="text-xs bg-amber-500/20 text-amber-400 px-2 py-1 rounded-full">
+            Detected: <strong>${escapeHtml(data.source_lang || 'unknown').toUpperCase()}</strong>
+          </span>
+          ${data.predicted_category ? `
+          <span class="text-xs px-2 py-1 rounded-full font-bold uppercase" style="background:${catColor}20;color:${catColor}">
+            ${escapeHtml(data.predicted_category)}
+          </span>` : ''}
+          ${data.sentiment ? `
+          <span class="text-xs px-2 py-1 rounded-full ${data.sentiment.sent_compound>=0.05?'bg-green-500/20 text-green-400':data.sentiment.sent_compound<=-0.05?'bg-red-500/20 text-red-400':'bg-slate-500/20 text-slate-400'}">
+            Sentiment: ${data.sentiment.sent_compound.toFixed(3)}
+          </span>` : ''}
+        </div>
+        <div class="pt-2 border-t border-brand/10">
+          <p class="text-xs text-slate-400 uppercase tracking-wider mb-2">English Translation</p>
+          <p class="text-sm text-slate-200 leading-relaxed">${escapeHtml(data.translated || '')}</p>
+        </div>
+      </div>`;
+    result.classList.remove('hidden');
+  } catch (e) {
+    result.innerHTML = `<div class="text-red-400 text-sm p-3 bg-red-900/20 rounded-xl">Error: ${escapeHtml(e.message)}</div>`;
+    result.classList.remove('hidden');
+  } finally {
+    $('#translate-btn').textContent = 'Detect & Translate';
+    $('#translate-btn').disabled = false;
+  }
+});
+
+// ── Boot ──────────────────────────────────────────────────────────────────
+checkStatus();
+</script>
+</body>
+</html>

@@ -16,3 +16,6 @@ deep-translator>=1.11
 gensim>=4.3
 pyLDAvis>=3.4
 pytest>=8.0
+fastapi>=0.110
+uvicorn>=0.29
+python-multipart>=0.0.9
