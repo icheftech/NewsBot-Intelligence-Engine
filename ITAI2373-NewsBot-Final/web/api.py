@@ -91,7 +91,7 @@ def boot_pipeline():
     # 5. Semantic search
     search_index = SemanticSearchIndex()
     search_index.build(df)
-    print(f"  Search index: {len(search_index.index)} articles")
+    print(f"  Search index: {len(search_index.index_df)} articles")
 
     # 6. Stats cache
     stats_cache = {

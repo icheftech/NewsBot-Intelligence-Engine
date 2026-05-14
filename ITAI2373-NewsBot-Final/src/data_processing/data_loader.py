@@ -36,7 +36,13 @@ def load_bbc_dataset(path: str) -> pd.DataFrame:
 
     # Prefer the largest file if multiple CSVs exist
     csv_path = max(csv_files, key=os.path.getsize)
-    df = pd.read_csv(csv_path)
+
+    # Detect delimiter — BBC archive uses tab separation
+    with open(csv_path, 'r', encoding='utf-8', errors='replace') as fh:
+        first_line = fh.readline()
+    sep = '\t' if first_line.count('\t') > first_line.count(',') else ','
+
+    df = pd.read_csv(csv_path, sep=sep, on_bad_lines='skip')
 
     # Normalise column names
     df = _normalise_columns(df)
