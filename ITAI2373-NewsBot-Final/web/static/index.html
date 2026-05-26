@@ -22,90 +22,127 @@
     body { font-family: 'Segoe UI', system-ui, sans-serif; }
 
     /* Scrollbar */
-    ::-webkit-scrollbar { width: 6px; }
-    ::-webkit-scrollbar-track { background: #1B2A4A; }
-    ::-webkit-scrollbar-thumb { background: #2563EB; border-radius: 3px; }
+    ::-webkit-scrollbar { width: 5px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: #2563EB55; border-radius: 3px; }
+    ::-webkit-scrollbar-thumb:hover { background: #2563EB; }
 
     /* Chat bubbles */
     .bubble-user { background: #2563EB; color: white; border-radius: 18px 18px 4px 18px; }
-    .bubble-bot  { background: #243560; color: #E2E8F0; border-radius: 18px 18px 18px 4px; border: 1px solid #2d3f6b; }
+    .bubble-bot  { background: #1e3058; color: #E2E8F0; border-radius: 18px 18px 18px 4px; border: 1px solid #2d3f6b; }
 
-    /* Tab active */
-    .tab-btn.active { background: #2563EB; color: white; }
-    .tab-btn        { transition: all 0.2s; }
+    /* Tab active underline style */
+    .tab-btn { transition: all 0.18s; border-bottom: 2px solid transparent; }
+    .tab-btn.active { color: #3B82F6; border-bottom-color: #2563EB; }
+    .tab-btn:not(.active):hover { color: #94A3B8; border-bottom-color: #2d3f6b; }
 
-    /* Confidence bar */
-    .conf-bar { height: 8px; border-radius: 4px; background: #2563EB; transition: width 0.6s ease; }
+    /* Bars */
+    .fill-bar { height: 100%; border-radius: 9999px; transition: width 0.7s cubic-bezier(0.4,0,0.2,1); }
 
-    /* Loading pulse */
-    @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.4} }
-    .typing-dot { animation: pulse 1.2s infinite; }
-    .typing-dot:nth-child(2) { animation-delay: 0.2s; }
-    .typing-dot:nth-child(3) { animation-delay: 0.4s; }
+    /* Typing dots */
+    @keyframes bounce { 0%,80%,100%{transform:translateY(0)} 40%{transform:translateY(-6px)} }
+    .typing-dot { animation: bounce 1.4s infinite ease-in-out; display: inline-block; }
+    .typing-dot:nth-child(2) { animation-delay: 0.16s; }
+    .typing-dot:nth-child(3) { animation-delay: 0.32s; }
 
     /* Stat card hover */
-    .stat-card { transition: transform 0.2s, box-shadow 0.2s; }
-    .stat-card:hover { transform: translateY(-2px); box-shadow: 0 8px 24px rgba(37,99,235,0.2); }
+    .stat-card { transition: transform 0.15s, box-shadow 0.15s; }
+    .stat-card:hover { transform: translateY(-2px); box-shadow: 0 6px 20px rgba(37,99,235,0.18); }
 
-    /* Markdown-ish in bot responses */
-    .bot-text strong, .bot-text b { color: #93C5FD; font-weight: 700; }
-    .bot-text code { background: #1e3058; padding: 1px 5px; border-radius: 3px; font-family: monospace; font-size: 0.85em; color: #7DD3FC; }
+    /* Markdown in bot responses */
+    .bot-text strong, .bot-text b { color: #93C5FD; font-weight: 600; }
+    .bot-text code { background: #0f1e3a; padding: 1px 5px; border-radius: 3px; font-family: monospace; font-size: 0.82em; color: #7DD3FC; }
+    .bot-text ul  { list-style: disc; padding-left: 1.2em; margin-top: 4px; }
+    .bot-text ol  { list-style: decimal; padding-left: 1.2em; margin-top: 4px; }
+    .bot-text li  { margin-bottom: 2px; }
+
+    /* Result card */
+    .result-card { background: #1a2a45; border: 1px solid #2d3f6b; border-radius: 12px; transition: border-color 0.15s; }
+    .result-card:hover { border-color: #2563EB66; }
+
+    /* Toast */
+    #toast { transition: opacity 0.3s, transform 0.3s; }
+
+    /* Spinner */
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .spin { animation: spin 0.7s linear infinite; display: inline-block; }
+
+    /* Example pill */
+    .example-pill { transition: all 0.15s; }
+    .example-pill:hover { background: #2563EB22; border-color: #2563EB88; color: white; }
+
+    /* Textarea wrapper word count */
+    .textarea-wrap { position: relative; }
+    .word-count { position: absolute; bottom: 10px; right: 12px; font-size: 10px; color: #475569; pointer-events: none; }
+
+    /* Search result rank badge */
+    .rank-badge { width: 22px; height: 22px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 10px; font-weight: 700; background: #0f1e3a; color: #64748b; flex-shrink: 0; }
   </style>
 </head>
 <body class="bg-navy-dark min-h-screen text-slate-100">
 
+<!-- ═══════════════════ TOAST ═══════════════════ -->
+<div id="toast" class="fixed top-4 right-4 z-[100] opacity-0 translate-y-[-8px] pointer-events-none">
+  <div id="toast-inner" class="px-4 py-2.5 rounded-lg text-sm font-medium shadow-xl flex items-center gap-2 max-w-xs"></div>
+</div>
+
 <!-- ═══════════════════ HEADER ═══════════════════ -->
-<header class="bg-navy border-b border-brand/30 sticky top-0 z-50 shadow-lg">
+<header class="bg-navy border-b border-white/5 sticky top-0 z-50 shadow-lg backdrop-blur">
   <div class="max-w-7xl mx-auto px-4 py-3 flex items-center justify-between">
     <div class="flex items-center gap-3">
-      <div class="w-9 h-9 bg-brand rounded-lg flex items-center justify-center font-black text-white text-lg">N</div>
+      <div class="w-9 h-9 bg-brand rounded-xl flex items-center justify-center font-black text-white text-lg shadow-lg shadow-brand/30">N</div>
       <div>
-        <h1 class="font-bold text-white text-lg leading-none">NewsBot 2.0</h1>
-        <p class="text-slate-400 text-xs">AI News Intelligence Engine</p>
+        <h1 class="font-bold text-white text-base leading-none">NewsBot 2.0</h1>
+        <p class="text-slate-500 text-xs mt-0.5">AI News Intelligence Engine</p>
       </div>
     </div>
     <div class="flex items-center gap-3">
       <div id="status-dot" class="flex items-center gap-2 text-xs text-slate-400">
         <span class="w-2 h-2 rounded-full bg-yellow-400 animate-pulse"></span>
-        <span id="status-text">Connecting...</span>
+        <span id="status-text">Loading pipeline...</span>
       </div>
       <a href="https://github.com/icheftech/NewsBot-Intelligence-Engine" target="_blank"
-         class="text-xs bg-navy-light border border-brand/30 hover:border-brand px-3 py-1.5 rounded-lg text-slate-300 hover:text-white transition-all">
+         class="text-xs bg-white/5 hover:bg-white/10 border border-white/10 hover:border-brand/50 px-3 py-1.5 rounded-lg text-slate-300 hover:text-white transition-all">
         GitHub ↗
       </a>
     </div>
   </div>
 </header>
 
-<!-- ═══════════════════ MAIN LAYOUT ═══════════════════ -->
-<div class="max-w-7xl mx-auto px-4 py-6 flex gap-6">
+<!-- ═══════════════════ MAIN ═══════════════════ -->
+<div class="max-w-7xl mx-auto px-4 py-5 flex gap-5">
 
-  <!-- LEFT: Chat Panel -->
-  <div class="flex-1 min-w-0 flex flex-col" style="height:calc(100vh - 100px)">
+  <!-- ── LEFT: Main Panel ── -->
+  <div class="flex-1 min-w-0 flex flex-col" style="height:calc(100vh - 96px)">
 
     <!-- Tab bar -->
-    <div class="flex gap-1 mb-4 bg-navy rounded-xl p-1 border border-brand/20">
-      <button class="tab-btn active flex-1 py-2 px-3 rounded-lg text-sm font-medium" data-tab="chat">💬 Chat</button>
-      <button class="tab-btn flex-1 py-2 px-3 rounded-lg text-sm font-medium text-slate-400 hover:text-white" data-tab="classify">🏷️ Classify</button>
-      <button class="tab-btn flex-1 py-2 px-3 rounded-lg text-sm font-medium text-slate-400 hover:text-white" data-tab="summarize">📝 Summarize</button>
-      <button class="tab-btn flex-1 py-2 px-3 rounded-lg text-sm font-medium text-slate-400 hover:text-white" data-tab="search">🔍 Search</button>
-      <button class="tab-btn flex-1 py-2 px-3 rounded-lg text-sm font-medium text-slate-400 hover:text-white" data-tab="translate">🌐 Translate</button>
+    <div class="flex gap-0 mb-4 border-b border-white/10 px-1">
+      <button class="tab-btn active flex-1 pb-2.5 pt-1 px-2 text-sm font-medium text-center" data-tab="chat">💬 Chat</button>
+      <button class="tab-btn flex-1 pb-2.5 pt-1 px-2 text-sm font-medium text-center text-slate-500" data-tab="classify">🏷️ Classify</button>
+      <button class="tab-btn flex-1 pb-2.5 pt-1 px-2 text-sm font-medium text-center text-slate-500" data-tab="summarize">📝 Summarize</button>
+      <button class="tab-btn flex-1 pb-2.5 pt-1 px-2 text-sm font-medium text-center text-slate-500" data-tab="search">🔍 Search</button>
+      <button class="tab-btn flex-1 pb-2.5 pt-1 px-2 text-sm font-medium text-center text-slate-500" data-tab="translate">🌐 Translate</button>
     </div>
 
-    <!-- ── CHAT TAB ── -->
+    <!-- ══ CHAT TAB ══ -->
     <div id="tab-chat" class="flex flex-col flex-1 min-h-0">
-      <div id="chat-messages" class="flex-1 overflow-y-auto space-y-4 pr-1 mb-4">
-        <!-- Welcome message -->
+      <!-- Chat toolbar -->
+      <div class="flex items-center justify-between mb-2 px-1">
+        <span class="text-xs text-slate-500">Conversation</span>
+        <button id="clear-chat" class="text-xs text-slate-500 hover:text-red-400 transition-colors">Clear ✕</button>
+      </div>
+
+      <div id="chat-messages" class="flex-1 overflow-y-auto space-y-4 pr-1 mb-3">
         <div class="flex gap-3 items-start">
-          <div class="w-8 h-8 bg-brand rounded-full flex-shrink-0 flex items-center justify-center text-sm font-bold">N</div>
-          <div class="bubble-bot px-4 py-3 max-w-lg bot-text">
-            <p class="font-semibold text-brand-light mb-1">NewsBot 2.0 ready!</p>
-            <p class="text-sm text-slate-300">Try these commands:</p>
-            <ul class="text-sm text-slate-400 mt-1 space-y-0.5">
-              <li><code>classify:</code> [article text]</li>
-              <li><code>summarize:</code> [article text]</li>
-              <li><code>search:</code> [topic or question]</li>
-              <li><code>translate:</code> [foreign text]</li>
+          <div class="w-8 h-8 bg-brand rounded-full flex-shrink-0 flex items-center justify-center text-sm font-bold shadow shadow-brand/40">N</div>
+          <div class="bubble-bot px-4 py-3 max-w-lg bot-text text-sm">
+            <p class="font-semibold text-brand-light mb-2">NewsBot 2.0 ready!</p>
+            <p class="text-slate-400 text-xs mb-2">Try one of the quick commands below, or type freely:</p>
+            <ul class="text-xs text-slate-400 space-y-1">
+              <li><code>classify:</code> &lt;article text&gt;</li>
+              <li><code>summarize:</code> &lt;article text&gt;</li>
+              <li><code>search:</code> &lt;topic or question&gt;</li>
+              <li><code>translate:</code> &lt;foreign text&gt;</li>
               <li><code>stats</code> · <code>topics</code> · <code>help</code></li>
             </ul>
           </div>
@@ -114,123 +151,203 @@
 
       <!-- Quick examples -->
       <div class="flex gap-2 flex-wrap mb-3">
-        <button class="example-btn text-xs bg-navy border border-brand/30 hover:border-brand px-3 py-1.5 rounded-full text-slate-300 hover:text-white transition-all" data-msg="help">help</button>
-        <button class="example-btn text-xs bg-navy border border-brand/30 hover:border-brand px-3 py-1.5 rounded-full text-slate-300 hover:text-white transition-all" data-msg="stats">stats</button>
-        <button class="example-btn text-xs bg-navy border border-brand/30 hover:border-brand px-3 py-1.5 rounded-full text-slate-300 hover:text-white transition-all" data-msg="topics">topics</button>
-        <button class="example-btn text-xs bg-navy border border-brand/30 hover:border-brand px-3 py-1.5 rounded-full text-slate-300 hover:text-white transition-all" data-msg="search: artificial intelligence technology">search: AI technology</button>
+        <button class="example-btn example-pill text-xs border border-white/10 bg-white/5 px-3 py-1.5 rounded-full text-slate-400" data-msg="help">help</button>
+        <button class="example-btn example-pill text-xs border border-white/10 bg-white/5 px-3 py-1.5 rounded-full text-slate-400" data-msg="stats">stats</button>
+        <button class="example-btn example-pill text-xs border border-white/10 bg-white/5 px-3 py-1.5 rounded-full text-slate-400" data-msg="topics">topics</button>
+        <button class="example-btn example-pill text-xs border border-white/10 bg-white/5 px-3 py-1.5 rounded-full text-slate-400" data-msg="search: artificial intelligence">search: AI</button>
+        <button class="example-btn example-pill text-xs border border-white/10 bg-white/5 px-3 py-1.5 rounded-full text-slate-400" data-msg="search: Premier League football">search: football</button>
       </div>
 
       <!-- Chat input -->
       <div class="flex gap-2">
-        <input id="chat-input" type="text" placeholder="Type a command or question..."
-               class="flex-1 bg-navy border border-brand/30 focus:border-brand rounded-xl px-4 py-3 text-sm text-white placeholder-slate-500 outline-none transition-all" />
-        <button id="chat-send" class="bg-brand hover:bg-brand-dark px-5 py-3 rounded-xl text-sm font-semibold transition-all disabled:opacity-40 disabled:cursor-not-allowed">Send</button>
+        <input id="chat-input" type="text" placeholder="Type a command or ask a question..."
+               class="flex-1 bg-navy border border-white/10 focus:border-brand/60 rounded-xl px-4 py-3 text-sm text-white placeholder-slate-600 outline-none transition-all" />
+        <button id="chat-send" class="bg-brand hover:bg-brand-dark px-5 py-3 rounded-xl text-sm font-semibold transition-all disabled:opacity-40 disabled:cursor-not-allowed flex items-center gap-2">
+          <span id="send-label">Send</span>
+        </button>
       </div>
     </div>
 
-    <!-- ── CLASSIFY TAB ── -->
-    <div id="tab-classify" class="hidden flex-col flex-1 min-h-0 gap-4">
-      <textarea id="classify-input" placeholder="Paste a news article here (minimum 10 words)..."
-                class="flex-1 bg-navy border border-brand/30 focus:border-brand rounded-xl px-4 py-3 text-sm text-white placeholder-slate-500 outline-none resize-none transition-all"></textarea>
-      <button id="classify-btn" class="bg-brand hover:bg-brand-dark px-6 py-3 rounded-xl text-sm font-semibold transition-all">Classify Article</button>
+    <!-- ══ CLASSIFY TAB ══ -->
+    <div id="tab-classify" class="hidden flex-col flex-1 min-h-0 gap-3">
+      <div class="flex gap-2 flex-wrap">
+        <span class="text-xs text-slate-500 mr-1 self-center">Try:</span>
+        <button class="prefill-btn example-pill text-xs border border-white/10 bg-white/5 px-3 py-1 rounded-full text-slate-400" data-target="classify-input" data-text="Apple unveiled its latest M4 chip at the annual developer conference, delivering a significant boost to performance for MacBook Pro and iPad users worldwide.">Tech example</button>
+        <button class="prefill-btn example-pill text-xs border border-white/10 bg-white/5 px-3 py-1 rounded-full text-slate-400" data-target="classify-input" data-text="The Prime Minister announced sweeping welfare reforms in Parliament today, drawing fierce criticism from opposition MPs who argued the changes would harm low-income families.">Politics example</button>
+        <button class="prefill-btn example-pill text-xs border border-white/10 bg-white/5 px-3 py-1 rounded-full text-slate-400" data-target="classify-input" data-text="Manchester United secured a dramatic 3-2 victory over Arsenal at Old Trafford, with a last-minute header from the striker sealing all three points in the Premier League title race.">Sport example</button>
+      </div>
+      <div class="textarea-wrap flex-1">
+        <textarea id="classify-input" placeholder="Paste a news article here (minimum 10 words)..."
+                  class="w-full h-full bg-navy border border-white/10 focus:border-brand/60 rounded-xl px-4 py-3 text-sm text-white placeholder-slate-600 outline-none resize-none transition-all pb-8"></textarea>
+        <span class="word-count" id="classify-wc">0 words</span>
+      </div>
+      <button id="classify-btn" class="bg-brand hover:bg-brand-dark px-6 py-3 rounded-xl text-sm font-semibold transition-all flex items-center justify-center gap-2">
+        <span id="classify-label">Classify Article</span>
+      </button>
       <div id="classify-result" class="hidden"></div>
     </div>
 
-    <!-- ── SUMMARIZE TAB ── -->
-    <div id="tab-summarize" class="hidden flex-col flex-1 min-h-0 gap-4">
-      <textarea id="summarize-input" placeholder="Paste a news article here (minimum 40 words)..."
-                class="flex-1 bg-navy border border-brand/30 focus:border-brand rounded-xl px-4 py-3 text-sm text-white placeholder-slate-500 outline-none resize-none transition-all"></textarea>
-      <button id="summarize-btn" class="bg-brand hover:bg-brand-dark px-6 py-3 rounded-xl text-sm font-semibold transition-all">Summarize</button>
+    <!-- ══ SUMMARIZE TAB ══ -->
+    <div id="tab-summarize" class="hidden flex-col flex-1 min-h-0 gap-3">
+      <div class="flex gap-2 flex-wrap">
+        <span class="text-xs text-slate-500 mr-1 self-center">Try:</span>
+        <button class="prefill-btn example-pill text-xs border border-white/10 bg-white/5 px-3 py-1 rounded-full text-slate-400" data-target="summarize-input" data-text="The Bank of England has raised interest rates to a 15-year high in an attempt to combat soaring inflation. The Monetary Policy Committee voted by a majority to increase rates from 4.5% to 4.75%, marking the 13th consecutive rise since December 2021. Governor Andrew Bailey said the bank remained committed to returning inflation to its 2% target, even as the economy showed signs of slowing. The latest data showed UK inflation remained stubbornly high at 8.7%, driven largely by food prices and energy costs. Critics argued the rate hikes were pushing mortgage holders to the brink, with millions set to refinance at significantly higher rates this year. The decision sent the pound higher against the dollar, as markets had already priced in a rate increase following recent inflation figures.">Economics article</button>
+        <button class="prefill-btn example-pill text-xs border border-white/10 bg-white/5 px-3 py-1 rounded-full text-slate-400" data-target="summarize-input" data-text="Scientists at MIT have developed a new artificial intelligence system that can predict protein folding structures with unprecedented accuracy, potentially revolutionizing drug discovery and treatment of diseases. The system, trained on millions of known protein structures, achieved near-perfect accuracy on benchmark tests and outperformed existing models including the celebrated AlphaFold system. Researchers believe the technology could dramatically accelerate the search for treatments for conditions like Alzheimer's and Parkinson's by identifying viable drug targets in days rather than years. The breakthrough builds on advances in transformer neural networks and was trained using data from the Protein Data Bank, a global repository of biological macromolecular structures maintained by research institutions worldwide.">Science article</button>
+      </div>
+      <div class="textarea-wrap flex-1">
+        <textarea id="summarize-input" placeholder="Paste a news article here (minimum 40 words)..."
+                  class="w-full h-full bg-navy border border-white/10 focus:border-brand/60 rounded-xl px-4 py-3 text-sm text-white placeholder-slate-600 outline-none resize-none transition-all pb-8"></textarea>
+        <span class="word-count" id="summarize-wc">0 words</span>
+      </div>
+      <button id="summarize-btn" class="bg-brand hover:bg-brand-dark px-6 py-3 rounded-xl text-sm font-semibold transition-all flex items-center justify-center gap-2">
+        <span id="summarize-label">Summarize</span>
+      </button>
       <div id="summarize-result" class="hidden"></div>
     </div>
 
-    <!-- ── SEARCH TAB ── -->
-    <div id="tab-search" class="hidden flex-col flex-1 min-h-0 gap-4">
-      <input id="search-input" type="text" placeholder="Search for news topics, events, or questions..."
-             class="bg-navy border border-brand/30 focus:border-brand rounded-xl px-4 py-3 text-sm text-white placeholder-slate-500 outline-none transition-all" />
-      <button id="search-btn" class="bg-brand hover:bg-brand-dark px-6 py-3 rounded-xl text-sm font-semibold transition-all">Semantic Search</button>
-      <div id="search-results" class="hidden flex-1 overflow-y-auto space-y-3"></div>
+    <!-- ══ SEARCH TAB ══ -->
+    <div id="tab-search" class="hidden flex-col flex-1 min-h-0 gap-3">
+      <div class="flex gap-2">
+        <input id="search-input" type="text" placeholder="Search for news topics, events, or questions..."
+               class="flex-1 bg-navy border border-white/10 focus:border-brand/60 rounded-xl px-4 py-3 text-sm text-white placeholder-slate-600 outline-none transition-all" />
+        <button id="search-btn" class="bg-brand hover:bg-brand-dark px-5 py-3 rounded-xl text-sm font-semibold transition-all flex items-center gap-2 whitespace-nowrap disabled:opacity-40">
+          <span id="search-label">Search</span>
+        </button>
+      </div>
+      <div class="flex gap-2 flex-wrap">
+        <span class="text-xs text-slate-500 self-center">Try:</span>
+        <button class="search-pill example-pill text-xs border border-white/10 bg-white/5 px-3 py-1 rounded-full text-slate-400" data-query="artificial intelligence">AI & Machine Learning</button>
+        <button class="search-pill example-pill text-xs border border-white/10 bg-white/5 px-3 py-1 rounded-full text-slate-400" data-query="Premier League football">Football</button>
+        <button class="search-pill example-pill text-xs border border-white/10 bg-white/5 px-3 py-1 rounded-full text-slate-400" data-query="global economy inflation">Economy</button>
+        <button class="search-pill example-pill text-xs border border-white/10 bg-white/5 px-3 py-1 rounded-full text-slate-400" data-query="election politics government">Politics</button>
+      </div>
+      <div id="search-results" class="hidden flex-1 overflow-y-auto space-y-2.5"></div>
+      <div id="search-empty" class="flex-1 flex items-center justify-center text-slate-600 text-sm">
+        Enter a topic above to search 500 articles by meaning
+      </div>
     </div>
 
-    <!-- ── TRANSLATE TAB ── -->
-    <div id="tab-translate" class="hidden flex-col flex-1 min-h-0 gap-4">
-      <textarea id="translate-input" placeholder="Paste foreign-language text here (Spanish, French, German, Portuguese, Chinese...)..."
-                class="flex-1 bg-navy border border-brand/30 focus:border-brand rounded-xl px-4 py-3 text-sm text-white placeholder-slate-500 outline-none resize-none transition-all"></textarea>
-      <button id="translate-btn" class="bg-brand hover:bg-brand-dark px-6 py-3 rounded-xl text-sm font-semibold transition-all">Detect &amp; Translate</button>
+    <!-- ══ TRANSLATE TAB ══ -->
+    <div id="tab-translate" class="hidden flex-col flex-1 min-h-0 gap-3">
+      <div class="flex gap-2 flex-wrap">
+        <span class="text-xs text-slate-500 mr-1 self-center">Try:</span>
+        <button class="prefill-btn example-pill text-xs border border-white/10 bg-white/5 px-3 py-1 rounded-full text-slate-400" data-target="translate-input" data-text="El presidente anunció nuevas medidas económicas para combatir la inflación, que ha alcanzado niveles históricos en el país.">Spanish</button>
+        <button class="prefill-btn example-pill text-xs border border-white/10 bg-white/5 px-3 py-1 rounded-full text-slate-400" data-target="translate-input" data-text="La France a enregistré une croissance économique supérieure aux prévisions au troisième trimestre, grâce à la reprise du secteur manufacturier.">French</button>
+        <button class="prefill-btn example-pill text-xs border border-white/10 bg-white/5 px-3 py-1 rounded-full text-slate-400" data-target="translate-input" data-text="人工知能技術の急速な発展が、製造業や医療分野に革命をもたらしています。">Japanese</button>
+      </div>
+      <div class="textarea-wrap flex-1">
+        <textarea id="translate-input" placeholder="Paste text in any language — auto-detects Spanish, French, German, Portuguese, Chinese, Japanese..."
+                  class="w-full h-full bg-navy border border-white/10 focus:border-brand/60 rounded-xl px-4 py-3 text-sm text-white placeholder-slate-600 outline-none resize-none transition-all pb-8"></textarea>
+        <span class="word-count" id="translate-wc">0 words</span>
+      </div>
+      <button id="translate-btn" class="bg-brand hover:bg-brand-dark px-6 py-3 rounded-xl text-sm font-semibold transition-all flex items-center justify-center gap-2">
+        <span id="translate-label">Detect &amp; Translate</span>
+      </button>
       <div id="translate-result" class="hidden"></div>
     </div>
 
   </div><!-- end left panel -->
 
-  <!-- RIGHT: Stats Sidebar -->
-  <div class="w-72 flex-shrink-0 space-y-4">
+  <!-- ── RIGHT: Sidebar ── -->
+  <div class="w-68 flex-shrink-0 space-y-3" style="width:272px">
 
     <!-- System Stats -->
-    <div class="bg-navy rounded-xl border border-brand/20 p-4">
-      <h2 class="font-bold text-sm text-slate-300 uppercase tracking-wider mb-3">System Stats</h2>
-      <div id="stats-grid" class="grid grid-cols-2 gap-2">
-        <div class="stat-card bg-navy-dark rounded-lg p-3 text-center border border-brand/10">
+    <div class="bg-navy rounded-xl border border-white/8 p-4">
+      <h2 class="text-xs font-bold text-slate-400 uppercase tracking-widest mb-3 flex items-center gap-1.5">
+        <span>📊</span> System Stats
+      </h2>
+      <div class="grid grid-cols-2 gap-2">
+        <div class="stat-card bg-navy-dark rounded-lg p-3 text-center border border-white/5">
           <div class="text-xl font-black text-brand" id="stat-articles">—</div>
-          <div class="text-xs text-slate-400 mt-0.5">Articles</div>
+          <div class="text-xs text-slate-500 mt-0.5">Articles</div>
         </div>
-        <div class="stat-card bg-navy-dark rounded-lg p-3 text-center border border-brand/10">
+        <div class="stat-card bg-navy-dark rounded-lg p-3 text-center border border-white/5">
           <div class="text-xl font-black text-green-400" id="stat-accuracy">—</div>
-          <div class="text-xs text-slate-400 mt-0.5">Accuracy</div>
+          <div class="text-xs text-slate-500 mt-0.5">Accuracy</div>
         </div>
-        <div class="stat-card bg-navy-dark rounded-lg p-3 text-center border border-brand/10">
+        <div class="stat-card bg-navy-dark rounded-lg p-3 text-center border border-white/5">
           <div class="text-xl font-black text-purple-400">7</div>
-          <div class="text-xs text-slate-400 mt-0.5">Intents</div>
+          <div class="text-xs text-slate-500 mt-0.5">Intents</div>
         </div>
-        <div class="stat-card bg-navy-dark rounded-lg p-3 text-center border border-brand/10">
+        <div class="stat-card bg-navy-dark rounded-lg p-3 text-center border border-white/5">
           <div class="text-xl font-black text-amber-400">5</div>
-          <div class="text-xs text-slate-400 mt-0.5">Languages</div>
+          <div class="text-xs text-slate-500 mt-0.5">Languages</div>
         </div>
       </div>
     </div>
 
     <!-- Category Breakdown -->
-    <div class="bg-navy rounded-xl border border-brand/20 p-4">
-      <h2 class="font-bold text-sm text-slate-300 uppercase tracking-wider mb-3">Category Breakdown</h2>
-      <div id="category-bars" class="space-y-3">
-        <div class="text-xs text-slate-500 text-center py-2">Loading...</div>
+    <div class="bg-navy rounded-xl border border-white/8 p-4">
+      <h2 class="text-xs font-bold text-slate-400 uppercase tracking-widest mb-3 flex items-center gap-1.5">
+        <span>📰</span> Categories
+      </h2>
+      <div id="category-bars" class="space-y-2.5">
+        <div class="text-xs text-slate-600 text-center py-2">Loading...</div>
       </div>
     </div>
 
     <!-- Sentiment by Category -->
-    <div class="bg-navy rounded-xl border border-brand/20 p-4">
-      <h2 class="font-bold text-sm text-slate-300 uppercase tracking-wider mb-3">Avg Sentiment</h2>
+    <div class="bg-navy rounded-xl border border-white/8 p-4">
+      <h2 class="text-xs font-bold text-slate-400 uppercase tracking-widest mb-3 flex items-center gap-1.5">
+        <span>💭</span> Avg Sentiment
+      </h2>
       <div id="sentiment-bars" class="space-y-2">
-        <div class="text-xs text-slate-500 text-center py-2">Loading...</div>
+        <div class="text-xs text-slate-600 text-center py-2">Loading...</div>
       </div>
     </div>
 
     <!-- Top Topics -->
-    <div class="bg-navy rounded-xl border border-brand/20 p-4">
-      <h2 class="font-bold text-sm text-slate-300 uppercase tracking-wider mb-3">Top Topics</h2>
-      <div id="topics-list" class="space-y-2">
-        <div class="text-xs text-slate-500 text-center py-2">Loading...</div>
+    <div class="bg-navy rounded-xl border border-white/8 p-4">
+      <h2 class="text-xs font-bold text-slate-400 uppercase tracking-widest mb-3 flex items-center gap-1.5">
+        <span>🏷️</span> Top Topics
+      </h2>
+      <div id="topics-list" class="space-y-2.5">
+        <div class="text-xs text-slate-600 text-center py-2">Loading...</div>
       </div>
     </div>
 
     <!-- About -->
-    <div class="bg-navy rounded-xl border border-brand/20 p-4 text-xs text-slate-400 space-y-1">
-      <p class="font-semibold text-slate-300">NewsBot Intelligence Engine 2.0</p>
+    <div class="bg-navy rounded-xl border border-white/8 p-4 text-xs text-slate-500 space-y-0.5">
+      <p class="font-semibold text-slate-300 mb-1">NewsBot Intelligence Engine 2.0</p>
       <p>ITAI 2373 Final Project</p>
       <p>Leroy Brown · Houston Community College</p>
-      <p class="pt-1">8 NLP pipelines · BBC News Archive</p>
+      <p class="pt-1.5 border-t border-white/5 mt-1.5">8 NLP pipelines · BBC News Archive · 2,225 articles</p>
     </div>
 
   </div><!-- end sidebar -->
-</div><!-- end main layout -->
+</div>
 
 <!-- ═══════════════════ JAVASCRIPT ═══════════════════ -->
 <script>
-const API = '';  // Same origin — empty string means relative URLs
+const API = '';
 
-// ── Utility ───────────────────────────────────────────────────────────────
 const $ = (s, el = document) => el.querySelector(s);
 const $$ = (s, el = document) => [...el.querySelectorAll(s)];
 
+// ── Toast ─────────────────────────────────────────────────────────────────
+let toastTimer;
+function showToast(msg, type = 'error') {
+  const toast = $('#toast');
+  const inner = $('#toast-inner');
+  const colors = {
+    error:   'bg-red-900/90 text-red-200 border border-red-700/50',
+    success: 'bg-green-900/90 text-green-200 border border-green-700/50',
+    info:    'bg-navy text-slate-200 border border-brand/30',
+  };
+  inner.className = `px-4 py-2.5 rounded-lg text-sm font-medium shadow-xl flex items-center gap-2 max-w-xs ${colors[type] || colors.info}`;
+  inner.textContent = msg;
+  toast.style.opacity = '1';
+  toast.style.transform = 'translateY(0)';
+  toast.style.pointerEvents = 'auto';
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => {
+    toast.style.opacity = '0';
+    toast.style.transform = 'translateY(-8px)';
+    toast.style.pointerEvents = 'none';
+  }, 3500);
+}
+
+// ── API helpers ───────────────────────────────────────────────────────────
 async function apiPost(endpoint, body) {
   const res = await fetch(`${API}/api/${endpoint}`, {
     method: 'POST',
@@ -256,15 +373,22 @@ function escapeHtml(str) {
     .replace(/"/g,'&quot;');
 }
 
-// Render markdown-ish: **bold**, `code`, newlines
 function renderMarkdown(text) {
-  return escapeHtml(text)
-    .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
-    .replace(/`(.+?)`/g, '<code>$1</code>')
-    .replace(/\n/g, '<br/>');
+  let html = escapeHtml(text);
+  // Bold
+  html = html.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
+  // Inline code
+  html = html.replace(/`(.+?)`/g, '<code>$1</code>');
+  // Numbered list lines: "1. item"
+  html = html.replace(/(?:^|\n)(\d+)\. (.+)/g, (_, n, item) => `<br/><span style="color:#64748b">${n}.</span> ${item}`);
+  // Bullet lines: "- item" or "• item"
+  html = html.replace(/(?:^|\n)[•\-] (.+)/g, (_, item) => `<br/>· ${item}`);
+  // Plain newlines
+  html = html.replace(/\n/g, '<br/>');
+  return html;
 }
 
-// ── Status check ──────────────────────────────────────────────────────────
+// ── Status ────────────────────────────────────────────────────────────────
 async function checkStatus() {
   try {
     const data = await apiGet('health');
@@ -280,93 +404,131 @@ async function checkStatus() {
       setTimeout(checkStatus, 3000);
     }
   } catch {
-    const dot = $('#status-dot span:first-child');
     $('#status-text').textContent = 'Offline';
-    dot.className = 'w-2 h-2 rounded-full bg-red-400';
+    $('#status-dot span:first-child').className = 'w-2 h-2 rounded-full bg-red-400';
     setTimeout(checkStatus, 5000);
   }
 }
 
-// ── Sidebar data ──────────────────────────────────────────────────────────
+// ── Sidebar ───────────────────────────────────────────────────────────────
 const CAT_COLORS = {
   business: '#3B82F6', entertainment: '#EC4899',
-  politics: '#8B5CF6', sport: '#10B981', tech: '#F59E0B',
+  politics: '#A78BFA', sport: '#10B981', tech: '#F59E0B',
 };
 
 async function loadSidebar() {
   try {
-    const stats = await apiGet('stats');
+    const [stats, topics] = await Promise.all([apiGet('stats'), apiGet('topics')]);
 
-    // Headline stats
     $('#stat-articles').textContent = stats.total_articles.toLocaleString();
     $('#stat-accuracy').textContent = (stats.accuracy * 100).toFixed(1) + '%';
 
-    // Category breakdown bars
+    // Category bars
     const total = stats.total_articles;
-    const catBars = $('#category-bars');
-    catBars.innerHTML = Object.entries(stats.category_counts)
+    $('#category-bars').innerHTML = Object.entries(stats.category_counts)
       .sort((a, b) => b[1] - a[1])
       .map(([cat, cnt]) => {
-        const pct = ((cnt / total) * 100).toFixed(1);
+        const pct = (cnt / total * 100).toFixed(1);
         const color = CAT_COLORS[cat] || '#6366F1';
-        return `
-          <div>
-            <div class="flex justify-between text-xs mb-1">
-              <span class="capitalize text-slate-300 font-medium">${cat}</span>
-              <span class="text-slate-400">${cnt}</span>
-            </div>
-            <div class="h-2 bg-navy-dark rounded-full overflow-hidden">
-              <div class="conf-bar h-full rounded-full" style="width:${pct}%;background:${color}"></div>
-            </div>
-          </div>`;
+        return `<div>
+          <div class="flex justify-between text-xs mb-1">
+            <span class="capitalize text-slate-300 font-medium">${cat}</span>
+            <span class="text-slate-500">${cnt.toLocaleString()}</span>
+          </div>
+          <div class="h-1.5 bg-navy-dark rounded-full overflow-hidden">
+            <div class="fill-bar" style="width:${pct}%;background:${color}"></div>
+          </div>
+        </div>`;
       }).join('');
 
     // Sentiment bars
-    const sentBars = $('#sentiment-bars');
-    sentBars.innerHTML = Object.entries(stats.avg_sentiment)
+    $('#sentiment-bars').innerHTML = Object.entries(stats.avg_sentiment)
+      .sort((a, b) => b[1] - a[1])
       .map(([cat, val]) => {
         const pct = ((val + 1) / 2 * 100).toFixed(0);
-        const color = val >= 0.05 ? '#10B981' : val <= -0.05 ? '#EF4444' : '#94A3B8';
+        const color = val >= 0.05 ? '#10B981' : val <= -0.05 ? '#EF4444' : '#64748b';
         const sign = val >= 0 ? '+' : '';
-        return `
-          <div class="flex items-center gap-2">
-            <span class="capitalize text-xs text-slate-400 w-20 flex-shrink-0">${cat}</span>
-            <div class="flex-1 h-1.5 bg-navy-dark rounded-full overflow-hidden">
-              <div style="width:${pct}%;background:${color};height:100%;border-radius:9999px"></div>
-            </div>
-            <span class="text-xs font-mono w-12 text-right" style="color:${color}">${sign}${val.toFixed(3)}</span>
-          </div>`;
+        return `<div class="flex items-center gap-2">
+          <span class="capitalize text-xs text-slate-400 w-20 flex-shrink-0">${cat}</span>
+          <div class="flex-1 h-1.5 bg-navy-dark rounded-full overflow-hidden">
+            <div class="fill-bar" style="width:${pct}%;background:${color}"></div>
+          </div>
+          <span class="text-xs font-mono w-12 text-right" style="color:${color}">${sign}${val.toFixed(3)}</span>
+        </div>`;
       }).join('');
 
     // Topics
-    const topics = await apiGet('topics');
-    const topicsList = $('#topics-list');
-    topicsList.innerHTML = Object.entries(topics).map(([cat, words]) => `
+    $('#topics-list').innerHTML = Object.entries(topics).map(([cat, words]) => `
       <div>
         <span class="text-xs font-semibold capitalize" style="color:${CAT_COLORS[cat]||'#6366F1'}">${cat}</span>
-        <p class="text-xs text-slate-400 leading-relaxed">${words.slice(0, 5).join(' · ')}</p>
+        <p class="text-xs text-slate-500 leading-relaxed mt-0.5">${(words||[]).slice(0,5).join(' · ')}</p>
       </div>`).join('');
 
   } catch (e) {
-    console.error('Sidebar load error:', e);
+    console.error('Sidebar error:', e);
   }
 }
 
-// ── Tab switching ─────────────────────────────────────────────────────────
+// ── Tabs ──────────────────────────────────────────────────────────────────
 $$('.tab-btn').forEach(btn => {
   btn.addEventListener('click', () => {
     const tab = btn.dataset.tab;
     $$('.tab-btn').forEach(b => {
       b.classList.remove('active');
-      b.classList.add('text-slate-400');
+      b.classList.add('text-slate-500');
+      b.classList.remove('text-white', 'text-brand-light');
     });
     btn.classList.add('active');
-    btn.classList.remove('text-slate-400');
-    $$('[id^="tab-"]').forEach(p => p.classList.add('hidden'));
+    btn.classList.remove('text-slate-500');
+    $$('[id^="tab-"]').forEach(p => { p.classList.add('hidden'); p.classList.remove('flex'); });
     $(`#tab-${tab}`).classList.remove('hidden');
     $(`#tab-${tab}`).classList.add('flex');
   });
 });
+
+// ── Word counters ─────────────────────────────────────────────────────────
+function updateWc(textareaId, wcId) {
+  const ta = $(`#${textareaId}`);
+  const wc = $(`#${wcId}`);
+  if (!ta || !wc) return;
+  ta.addEventListener('input', () => {
+    const words = ta.value.trim() ? ta.value.trim().split(/\s+/).length : 0;
+    wc.textContent = `${words} word${words !== 1 ? 's' : ''}`;
+  });
+}
+updateWc('classify-input', 'classify-wc');
+updateWc('summarize-input', 'summarize-wc');
+updateWc('translate-input', 'translate-wc');
+
+// ── Prefill buttons ───────────────────────────────────────────────────────
+$$('.prefill-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    const ta = $(`#${btn.dataset.target}`);
+    ta.value = btn.dataset.text;
+    ta.dispatchEvent(new Event('input'));
+    ta.focus();
+  });
+});
+
+// Search pills
+$$('.search-pill').forEach(btn => {
+  btn.addEventListener('click', () => {
+    $('#search-input').value = btn.dataset.query;
+    $('#search-btn').click();
+  });
+});
+
+// ── Spinner helpers ───────────────────────────────────────────────────────
+function setLoading(labelId, btnEl, loading, defaultText) {
+  const label = $(`#${labelId}`);
+  if (loading) {
+    label.innerHTML = `<span class="spin inline-block w-3 h-3 border-2 border-white/30 border-t-white rounded-full"></span>`;
+    btnEl.disabled = true;
+  } else {
+    label.textContent = defaultText;
+    btnEl.disabled = false;
+  }
+}
 
 // ── Chat ──────────────────────────────────────────────────────────────────
 const chatHistory = [];
@@ -374,15 +536,14 @@ const chatHistory = [];
 function appendMessage(role, text, intent = null) {
   const container = $('#chat-messages');
   const isUser = role === 'user';
-
   const wrap = document.createElement('div');
   wrap.className = `flex gap-3 items-start ${isUser ? 'flex-row-reverse' : ''}`;
 
   const avatar = document.createElement('div');
-  avatar.className = `w-8 h-8 rounded-full flex-shrink-0 flex items-center justify-center text-sm font-bold ${
-    isUser ? 'bg-slate-600 text-white' : 'bg-brand text-white'
+  avatar.className = `w-8 h-8 rounded-full flex-shrink-0 flex items-center justify-center text-xs font-bold ${
+    isUser ? 'bg-slate-700 text-slate-300' : 'bg-brand text-white shadow shadow-brand/40'
   }`;
-  avatar.textContent = isUser ? 'U' : 'N';
+  avatar.textContent = isUser ? 'You' : 'N';
 
   const bubble = document.createElement('div');
   bubble.className = `${isUser ? 'bubble-user' : 'bubble-bot bot-text'} px-4 py-3 max-w-lg text-sm`;
@@ -392,14 +553,13 @@ function appendMessage(role, text, intent = null) {
     badge.className = 'text-xs bg-brand/20 text-brand-light px-2 py-0.5 rounded-full mr-2 font-mono';
     badge.textContent = intent;
     bubble.appendChild(badge);
-    bubble.appendChild(document.createElement('br'));
-    bubble.style.paddingTop = '10px';
+    const br = document.createElement('br');
+    bubble.appendChild(br);
   }
 
-  const p = document.createElement('div');
-  p.innerHTML = isUser ? escapeHtml(text) : renderMarkdown(text);
-  bubble.appendChild(p);
-
+  const content = document.createElement('div');
+  content.innerHTML = isUser ? escapeHtml(text) : renderMarkdown(text);
+  bubble.appendChild(content);
   wrap.appendChild(avatar);
   wrap.appendChild(bubble);
   container.appendChild(wrap);
@@ -413,19 +573,14 @@ function appendTyping() {
   wrap.className = 'flex gap-3 items-start';
   wrap.id = 'typing-indicator';
   wrap.innerHTML = `
-    <div class="w-8 h-8 bg-brand rounded-full flex-shrink-0 flex items-center justify-center text-sm font-bold">N</div>
-    <div class="bubble-bot px-4 py-3 flex gap-1 items-center">
-      <span class="typing-dot w-2 h-2 bg-slate-400 rounded-full"></span>
-      <span class="typing-dot w-2 h-2 bg-slate-400 rounded-full"></span>
-      <span class="typing-dot w-2 h-2 bg-slate-400 rounded-full"></span>
+    <div class="w-8 h-8 bg-brand rounded-full flex-shrink-0 flex items-center justify-center text-xs font-bold shadow shadow-brand/40">N</div>
+    <div class="bubble-bot px-4 py-3.5 flex gap-1.5 items-center">
+      <span class="typing-dot w-1.5 h-1.5 bg-slate-500 rounded-full"></span>
+      <span class="typing-dot w-1.5 h-1.5 bg-slate-500 rounded-full"></span>
+      <span class="typing-dot w-1.5 h-1.5 bg-slate-500 rounded-full"></span>
     </div>`;
   container.appendChild(wrap);
   container.scrollTop = container.scrollHeight;
-}
-
-function removeTyping() {
-  const t = $('#typing-indicator');
-  if (t) t.remove();
 }
 
 async function sendChat(message) {
@@ -433,208 +588,221 @@ async function sendChat(message) {
   const input = $('#chat-input');
   const btn = $('#chat-send');
   input.value = '';
-  input.disabled = true;
-  btn.disabled = true;
+  setLoading('send-label', btn, true, 'Send');
 
   appendMessage('user', message);
   appendTyping();
 
   try {
     const data = await apiPost('chat', { message, history: chatHistory });
-    removeTyping();
+    $('#typing-indicator')?.remove();
     appendMessage('bot', data.response, data.intent);
     chatHistory.push([message, data.response]);
     if (chatHistory.length > 20) chatHistory.shift();
   } catch (e) {
-    removeTyping();
-    appendMessage('bot', `Error: ${e.message}`);
+    $('#typing-indicator')?.remove();
+    showToast(e.message, 'error');
+    appendMessage('bot', '⚠️ ' + e.message);
   } finally {
-    input.disabled = false;
-    btn.disabled = false;
+    setLoading('send-label', btn, false, 'Send');
     input.focus();
   }
 }
 
 $('#chat-send').addEventListener('click', () => sendChat($('#chat-input').value));
 $('#chat-input').addEventListener('keydown', e => { if (e.key === 'Enter') sendChat(e.target.value); });
-$$('.example-btn').forEach(btn => {
-  btn.addEventListener('click', () => sendChat(btn.dataset.msg));
+$$('.example-btn').forEach(btn => btn.addEventListener('click', () => sendChat(btn.dataset.msg)));
+
+$('#clear-chat').addEventListener('click', () => {
+  chatHistory.length = 0;
+  const container = $('#chat-messages');
+  container.innerHTML = `
+    <div class="flex gap-3 items-start">
+      <div class="w-8 h-8 bg-brand rounded-full flex-shrink-0 flex items-center justify-center text-xs font-bold shadow shadow-brand/40">N</div>
+      <div class="bubble-bot px-4 py-3 max-w-lg text-sm text-slate-400">
+        Conversation cleared. Ready for your next question.
+      </div>
+    </div>`;
 });
 
-// ── Classify Tab ──────────────────────────────────────────────────────────
+// ── Classify ──────────────────────────────────────────────────────────────
 $('#classify-btn').addEventListener('click', async () => {
   const text = $('#classify-input').value.trim();
-  const result = $('#classify-result');
-  if (!text) return;
-  $('#classify-btn').textContent = 'Classifying...';
-  $('#classify-btn').disabled = true;
-  result.className = 'hidden';
+  if (!text) { showToast('Paste an article first', 'info'); return; }
+
+  const btn = $('#classify-btn');
+  setLoading('classify-label', btn, true, 'Classify Article');
+  $('#classify-result').className = 'hidden';
 
   try {
     const data = await apiPost('classify', { text });
-    const sentLabel = data.sentiment.sent_compound >= 0.05 ? '😊 Positive'
-                    : data.sentiment.sent_compound <= -0.05 ? '😞 Negative' : '😐 Neutral';
-    const sentColor = data.sentiment.sent_compound >= 0.05 ? 'text-green-400'
-                    : data.sentiment.sent_compound <= -0.05 ? 'text-red-400' : 'text-slate-400';
+    const sent = data.sentiment.sent_compound;
+    const sentLabel = sent >= 0.05 ? '😊 Positive' : sent <= -0.05 ? '😞 Negative' : '😐 Neutral';
+    const sentColor = sent >= 0.05 ? '#10B981' : sent <= -0.05 ? '#EF4444' : '#64748b';
+    const catColor = CAT_COLORS[data.category] || '#6366F1';
 
-    result.innerHTML = `
-      <div class="bg-navy border border-brand/20 rounded-xl p-4 space-y-4">
+    $('#classify-result').innerHTML = `
+      <div class="result-card p-4 space-y-4">
         <div class="flex items-center gap-3">
-          <span class="text-2xl font-black uppercase text-brand">${escapeHtml(data.category)}</span>
-          <span class="text-sm bg-brand/20 text-brand-light px-3 py-1 rounded-full font-mono">${(data.confidence*100).toFixed(1)}% confidence</span>
+          <div class="px-3 py-1.5 rounded-lg text-sm font-black uppercase" style="background:${catColor}22;color:${catColor};border:1px solid ${catColor}44">${escapeHtml(data.category)}</div>
+          <div class="text-2xl font-black text-white">${(data.confidence*100).toFixed(1)}%</div>
+          <div class="text-xs text-slate-500">confidence</div>
         </div>
         <div>
-          <p class="text-xs text-slate-400 uppercase tracking-wider mb-2">All Categories</p>
+          <p class="text-xs text-slate-500 uppercase tracking-wider mb-2">All Categories</p>
           <div class="space-y-2">
-            ${data.all_scores.slice(0,5).map(s => `
-              <div>
+            ${data.all_scores.slice(0,5).map(s => {
+              const c = CAT_COLORS[s.category] || '#6366F1';
+              const isTop = s.category === data.category;
+              return `<div>
                 <div class="flex justify-between text-xs mb-1">
-                  <span class="capitalize text-slate-300">${escapeHtml(s.category)}</span>
-                  <span class="text-slate-400 font-mono">${(s.probability*100).toFixed(1)}%</span>
+                  <span class="capitalize ${isTop ? 'text-white font-semibold' : 'text-slate-400'}">${escapeHtml(s.category)}</span>
+                  <span class="font-mono ${isTop ? 'text-white' : 'text-slate-500'}">${(s.probability*100).toFixed(1)}%</span>
                 </div>
-                <div class="h-2 bg-navy-dark rounded-full overflow-hidden">
-                  <div class="conf-bar" style="width:${(s.probability*100).toFixed(1)}%"></div>
+                <div class="h-1.5 bg-navy-dark rounded-full overflow-hidden">
+                  <div class="fill-bar" style="width:${(s.probability*100).toFixed(1)}%;background:${c}"></div>
                 </div>
-              </div>`).join('')}
+              </div>`;
+            }).join('')}
           </div>
         </div>
-        <div class="flex items-center gap-2 pt-1 border-t border-brand/10">
-          <span class="text-xs text-slate-400">Sentiment:</span>
-          <span class="text-sm font-semibold ${sentColor}">${sentLabel}</span>
-          <span class="text-xs text-slate-500 font-mono">(${data.sentiment.sent_compound.toFixed(3)})</span>
+        <div class="flex items-center gap-2 pt-2 border-t border-white/5">
+          <span class="text-xs text-slate-500">Sentiment:</span>
+          <span class="text-sm font-semibold" style="color:${sentColor}">${sentLabel}</span>
+          <span class="text-xs font-mono text-slate-600">${sent.toFixed(3)}</span>
         </div>
       </div>`;
-    result.classList.remove('hidden');
+    $('#classify-result').classList.remove('hidden');
   } catch (e) {
-    result.innerHTML = `<div class="text-red-400 text-sm p-3 bg-red-900/20 rounded-xl">Error: ${escapeHtml(e.message)}</div>`;
-    result.classList.remove('hidden');
+    showToast(e.message, 'error');
   } finally {
-    $('#classify-btn').textContent = 'Classify Article';
-    $('#classify-btn').disabled = false;
+    setLoading('classify-label', btn, false, 'Classify Article');
   }
 });
 
-// ── Summarize Tab ─────────────────────────────────────────────────────────
+// ── Summarize ─────────────────────────────────────────────────────────────
 $('#summarize-btn').addEventListener('click', async () => {
   const text = $('#summarize-input').value.trim();
-  const result = $('#summarize-result');
-  if (!text) return;
-  $('#summarize-btn').textContent = 'Summarizing...';
-  $('#summarize-btn').disabled = true;
-  result.className = 'hidden';
+  if (!text) { showToast('Paste an article first', 'info'); return; }
+
+  const btn = $('#summarize-btn');
+  setLoading('summarize-label', btn, true, 'Summarize');
+  $('#summarize-result').className = 'hidden';
 
   try {
     const data = await apiPost('summarize', { text });
-    result.innerHTML = `
-      <div class="bg-navy border border-brand/20 rounded-xl p-4 space-y-3">
-        <div class="flex gap-3">
-          <div class="text-center bg-navy-dark rounded-lg p-3 min-w-[80px] border border-brand/10">
-            <div class="text-xl font-black text-brand">${data.original_words}</div>
-            <div class="text-xs text-slate-400">Original</div>
+    $('#summarize-result').innerHTML = `
+      <div class="result-card p-4 space-y-3">
+        <div class="grid grid-cols-3 gap-2 text-center">
+          <div class="bg-navy-dark rounded-lg p-2.5 border border-white/5">
+            <div class="text-lg font-black text-slate-300">${data.original_words}</div>
+            <div class="text-xs text-slate-500">Original</div>
           </div>
-          <div class="flex items-center text-slate-500">→</div>
-          <div class="text-center bg-navy-dark rounded-lg p-3 min-w-[80px] border border-green-500/20">
-            <div class="text-xl font-black text-green-400">${data.summary_words}</div>
-            <div class="text-xs text-slate-400">Summary</div>
+          <div class="bg-navy-dark rounded-lg p-2.5 border border-green-500/20">
+            <div class="text-lg font-black text-green-400">${data.summary_words}</div>
+            <div class="text-xs text-slate-500">Summary</div>
           </div>
-          <div class="flex items-center text-slate-500">·</div>
-          <div class="text-center bg-navy-dark rounded-lg p-3 min-w-[80px] border border-purple-500/20">
-            <div class="text-xl font-black text-purple-400">${data.compression_pct}%</div>
-            <div class="text-xs text-slate-400">Compression</div>
+          <div class="bg-navy-dark rounded-lg p-2.5 border border-purple-500/20">
+            <div class="text-lg font-black text-purple-400">${data.compression_pct}%</div>
+            <div class="text-xs text-slate-500">Compressed</div>
           </div>
         </div>
-        <div class="pt-2 border-t border-brand/10">
-          <p class="text-xs text-slate-400 uppercase tracking-wider mb-2">Summary</p>
+        <div class="pt-2 border-t border-white/5">
+          <p class="text-xs text-slate-500 uppercase tracking-wider mb-2">Summary</p>
           <p class="text-sm text-slate-200 leading-relaxed">${escapeHtml(data.summary)}</p>
         </div>
       </div>`;
-    result.classList.remove('hidden');
+    $('#summarize-result').classList.remove('hidden');
   } catch (e) {
-    result.innerHTML = `<div class="text-red-400 text-sm p-3 bg-red-900/20 rounded-xl">Error: ${escapeHtml(e.message)}</div>`;
-    result.classList.remove('hidden');
+    showToast(e.message, 'error');
   } finally {
-    $('#summarize-btn').textContent = 'Summarize';
-    $('#summarize-btn').disabled = false;
+    setLoading('summarize-label', btn, false, 'Summarize');
   }
 });
 
-// ── Search Tab ────────────────────────────────────────────────────────────
-$('#search-btn').addEventListener('click', async () => {
+// ── Search ────────────────────────────────────────────────────────────────
+async function doSearch() {
   const query = $('#search-input').value.trim();
+  if (!query) { showToast('Enter a search query', 'info'); return; }
+
+  const btn = $('#search-btn');
   const results = $('#search-results');
-  if (!query) return;
-  $('#search-btn').textContent = 'Searching...';
-  $('#search-btn').disabled = true;
-  results.innerHTML = '';
+  const empty = $('#search-empty');
+  setLoading('search-label', btn, true, 'Search');
   results.classList.add('hidden');
+  empty.classList.add('hidden');
 
   try {
     const data = await apiPost('search', { query, top_k: 5 });
-    results.innerHTML = data.results.map((r, i) => `
-      <div class="bg-navy border border-brand/20 rounded-xl p-4 hover:border-brand/50 transition-all">
-        <div class="flex items-center gap-2 mb-2">
-          <span class="text-xs font-bold uppercase px-2 py-0.5 rounded-full" style="background:${CAT_COLORS[r.category]||'#6366F1'}20;color:${CAT_COLORS[r.category]||'#6366F1'}">${escapeHtml(r.category)}</span>
-          <span class="text-xs text-slate-500 font-mono ml-auto">${(r.score*100).toFixed(1)}% match</span>
+    if (!data.results.length) {
+      empty.textContent = 'No results found.';
+      empty.classList.remove('hidden');
+      return;
+    }
+    results.innerHTML = data.results.map((r, i) => {
+      const color = CAT_COLORS[r.category] || '#6366F1';
+      const pct = (r.score * 100).toFixed(1);
+      return `<div class="result-card p-3.5 hover:border-brand/40 transition-colors">
+        <div class="flex items-start gap-2.5 mb-2">
+          <div class="rank-badge text-slate-600">#${i+1}</div>
+          <div class="flex items-center gap-2 flex-wrap flex-1">
+            <span class="text-xs font-bold uppercase px-2 py-0.5 rounded-full" style="background:${color}22;color:${color};border:1px solid ${color}44">${escapeHtml(r.category)}</span>
+            <span class="text-xs text-slate-500 font-mono ml-auto">${pct}% match</span>
+          </div>
         </div>
-        <p class="text-sm text-slate-300 leading-relaxed">${escapeHtml((r.snippet||'').slice(0,220))}...</p>
-        <div class="mt-2 h-1 bg-navy-dark rounded-full overflow-hidden">
-          <div style="width:${(r.score*100).toFixed(0)}%;height:100%;background:${CAT_COLORS[r.category]||'#6366F1'};border-radius:9999px"></div>
+        <p class="text-xs text-slate-400 leading-relaxed">${escapeHtml((r.snippet||'').slice(0,200))}…</p>
+        <div class="mt-2.5 h-1 bg-navy-dark rounded-full overflow-hidden">
+          <div style="width:${pct}%;height:100%;background:${color};border-radius:9999px;transition:width 0.7s ease"></div>
         </div>
-      </div>`).join('');
+      </div>`;
+    }).join('');
     results.classList.remove('hidden');
-    results.classList.add('flex');
   } catch (e) {
-    results.innerHTML = `<div class="text-red-400 text-sm p-3 bg-red-900/20 rounded-xl">Error: ${escapeHtml(e.message)}</div>`;
-    results.classList.remove('hidden');
+    showToast(e.message, 'error');
+    empty.textContent = 'Search failed. Try again.';
+    empty.classList.remove('hidden');
   } finally {
-    $('#search-btn').textContent = 'Semantic Search';
-    $('#search-btn').disabled = false;
+    setLoading('search-label', btn, false, 'Search');
   }
-});
+}
 
-$('#search-input').addEventListener('keydown', e => {
-  if (e.key === 'Enter') $('#search-btn').click();
-});
+$('#search-btn').addEventListener('click', doSearch);
+$('#search-input').addEventListener('keydown', e => { if (e.key === 'Enter') doSearch(); });
 
-// ── Translate Tab ─────────────────────────────────────────────────────────
+// ── Translate ─────────────────────────────────────────────────────────────
 $('#translate-btn').addEventListener('click', async () => {
   const text = $('#translate-input').value.trim();
-  const result = $('#translate-result');
-  if (!text) return;
-  $('#translate-btn').textContent = 'Detecting & Translating...';
-  $('#translate-btn').disabled = true;
-  result.className = 'hidden';
+  if (!text) { showToast('Paste some text first', 'info'); return; }
+
+  const btn = $('#translate-btn');
+  setLoading('translate-label', btn, true, 'Detect & Translate');
+  $('#translate-result').className = 'hidden';
 
   try {
     const data = await apiPost('translate', { text });
     const catColor = CAT_COLORS[data.predicted_category] || '#6366F1';
-    result.innerHTML = `
-      <div class="bg-navy border border-brand/20 rounded-xl p-4 space-y-3">
-        <div class="flex gap-2 flex-wrap">
-          <span class="text-xs bg-amber-500/20 text-amber-400 px-2 py-1 rounded-full">
-            Detected: <strong>${escapeHtml(data.source_lang || 'unknown').toUpperCase()}</strong>
+    const sent = data.sentiment?.sent_compound;
+    const sentColor = sent >= 0.05 ? '#10B981' : sent <= -0.05 ? '#EF4444' : '#64748b';
+
+    $('#translate-result').innerHTML = `
+      <div class="result-card p-4 space-y-3">
+        <div class="flex gap-2 flex-wrap items-center">
+          <span class="text-xs bg-amber-500/15 text-amber-400 border border-amber-500/30 px-2.5 py-1 rounded-full font-semibold">
+            ${escapeHtml((data.source_lang || 'unknown').toUpperCase())} detected
           </span>
-          ${data.predicted_category ? `
-          <span class="text-xs px-2 py-1 rounded-full font-bold uppercase" style="background:${catColor}20;color:${catColor}">
-            ${escapeHtml(data.predicted_category)}
-          </span>` : ''}
-          ${data.sentiment ? `
-          <span class="text-xs px-2 py-1 rounded-full ${data.sentiment.sent_compound>=0.05?'bg-green-500/20 text-green-400':data.sentiment.sent_compound<=-0.05?'bg-red-500/20 text-red-400':'bg-slate-500/20 text-slate-400'}">
-            Sentiment: ${data.sentiment.sent_compound.toFixed(3)}
-          </span>` : ''}
+          ${data.predicted_category ? `<span class="text-xs px-2.5 py-1 rounded-full font-bold uppercase border" style="background:${catColor}15;color:${catColor};border-color:${catColor}44">${escapeHtml(data.predicted_category)}</span>` : ''}
+          ${sent !== undefined ? `<span class="text-xs px-2.5 py-1 rounded-full border" style="color:${sentColor};background:${sentColor}15;border-color:${sentColor}44">Sentiment: ${sent.toFixed(3)}</span>` : ''}
         </div>
-        <div class="pt-2 border-t border-brand/10">
-          <p class="text-xs text-slate-400 uppercase tracking-wider mb-2">English Translation</p>
+        <div class="pt-2 border-t border-white/5">
+          <p class="text-xs text-slate-500 uppercase tracking-wider mb-2">English Translation</p>
           <p class="text-sm text-slate-200 leading-relaxed">${escapeHtml(data.translated || '')}</p>
         </div>
       </div>`;
-    result.classList.remove('hidden');
+    $('#translate-result').classList.remove('hidden');
   } catch (e) {
-    result.innerHTML = `<div class="text-red-400 text-sm p-3 bg-red-900/20 rounded-xl">Error: ${escapeHtml(e.message)}</div>`;
-    result.classList.remove('hidden');
+    showToast(e.message, 'error');
   } finally {
-    $('#translate-btn').textContent = 'Detect & Translate';
-    $('#translate-btn').disabled = false;
+    setLoading('translate-label', btn, false, 'Detect & Translate');
   }
 });
 

@@ -82,10 +82,15 @@ def boot_pipeline():
     dtm = count_vec.fit_transform(df["clean_text"])
     lda = TopicModeler(n_topics=N_TOPICS, method="lda")
     lda.fit_transform(dtm, count_vec)
-    top_topics = {
-        cat: lda.get_topic_words(i % N_TOPICS, n_words=8)
-        for i, cat in enumerate(df["category"].unique())
-    }
+    # Map each category to its dominant LDA topic, then get that topic's words.
+    # This fixes the old enumerate-based mapping that scrambled category→topic.
+    lda_dist = lda.model.transform(dtm)
+    df["_dominant_topic"] = lda_dist.argmax(axis=1)
+    top_topics = {}
+    for cat in df["category"].unique():
+        dominant = int(df[df["category"] == cat]["_dominant_topic"].mode()[0])
+        top_topics[cat] = lda.get_topic_words(dominant, n_words=8)
+    df.drop(columns=["_dominant_topic"], inplace=True)
     print("  Topics: LDA fitted")
 
     # 5. Semantic search
